@@ -102,3 +102,9 @@ rust_out
 trace-*.html
 __pycache__/
 *.py[cod]
+
+# Arslan: vendor/ is cargo's own output and cargo checksums every file in it
+# (.cargo-checksum.json). An ignore rule above that drops one (".vim/" did:
+# memchr and aho-corasick ship .vim/coc-settings.json) breaks the offline build
+# from a clean checkout. Keep this last so it wins.
+!vendor/**
