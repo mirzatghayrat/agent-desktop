@@ -1,3 +1,5 @@
+//! Changed by Arslan (2026-10-10): a complete inventory leaves out an application whose
+//! process is gone. Listed in `ARSLAN-FORK.md`.
 use agent_desktop_core::{AdapterError, AppInfo, ErrorCode};
 use serde::Deserialize;
 use std::time::Instant;
@@ -158,6 +160,11 @@ fn apps_from_json(bytes: &[u8], deadline: Instant) -> Result<Vec<AppInfo>, Adapt
     )
 }
 
+/// With `skip_cross_uid` (the complete inventory), an application owned by another user and an
+/// application whose process is already gone are left out. LaunchServices can keep a record of a
+/// process that no longer exists indefinitely (seen: an app that never finished launching, with
+/// a null launch time), and failing on it made every complete inventory retry until its deadline.
+/// A scoped lookup still reports both.
 fn apps_from_json_with(
     bytes: &[u8],
     deadline: Instant,
@@ -182,6 +189,7 @@ fn apps_from_json_with(
         }
         let process_instance = match resolve(app.pid) {
             Ok(Some(instance)) => instance,
+            Ok(None) if skip_cross_uid => continue,
             Ok(None) => {
                 return Err(inventory_error(
                     "Selected application exited during inventory",
